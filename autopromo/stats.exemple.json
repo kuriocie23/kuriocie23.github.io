@@ -1,0 +1,26 @@
+{
+  "periode": "à remplir après activation de BigQuery ou de l'API GA4",
+  "source": "firebase kuriocie-jeux",
+  "evenements": [
+    "cross_promo_view",
+    "cross_promo_click"
+  ],
+  "lignes": [
+    {
+      "jeu_source": "boule",
+      "jeu_cible": "genie",
+      "langue": "pt-BR",
+      "emplacement": "plus_de_jeux",
+      "vues": 0,
+      "clics": 0
+    },
+    {
+      "jeu_source": "boule",
+      "jeu_cible": "zora",
+      "langue": "fr",
+      "emplacement": "pub_maison",
+      "vues": 0,
+      "clics": 0
+    }
+  ]
+}

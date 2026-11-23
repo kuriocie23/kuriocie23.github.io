@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Auto-promotion — Kuriocie</title>
+  <style>
+    :root {
+      --ink: #1c140e;
+      --ink2: #3a2a1c;
+      --cream: #f6efe3;
+      --paper: #fffaf3;
+      --gold: #b8893a;
+      --gold2: #e8c27a;
+      --line: #e4d5c0;
+      --mute: #7a6854;
+      --ok: #2f6b3c;
+      --warn: #8a3b16;
+      --red: #9b2c2c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font: 15px/1.45 "Source Sans 3", "Segoe UI", sans-serif;
+      background: var(--cream);
+      color: var(--ink);
+    }
+    header {
+      background: var(--ink);
+      color: var(--cream);
+      padding: 16px 24px 0;
+    }
+    header h1 { margin: 0 0 4px; font-size: 22px; font-weight: 650; }
+    header p { margin: 0 0 12px; color: var(--gold2); font-size: 13px; }
+    nav { display: flex; gap: 4px; }
+    nav button {
+      background: transparent;
+      color: var(--gold2);
+      border: 0;
+      border-bottom: 2px solid transparent;
+      padding: 10px 16px;
+      cursor: pointer;
+      font: inherit;
+    }
+    nav button.active { color: #fff; border-bottom-color: var(--gold2); }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 24px 60px; }
+    .banner {
+      background: #f3e0c8;
+      border: 1px solid var(--gold);
+      color: var(--warn);
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin-bottom: 18px;
+    }
+    .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+    label { font-size: 13px; color: var(--mute); margin-right: 6px; }
+    select, input[type="number"], button.btn, input[type="file"] {
+      font: inherit;
+    }
+    select, input[type="number"] {
+      border: 1px solid var(--line);
+      background: var(--paper);
+      padding: 6px 8px;
+      border-radius: 6px;
+    }
+    button.btn {
+      background: var(--ink);
+      color: var(--cream);
+      border: 0;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button.btn.secondary { background: #6b5340; }
+    button.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+    button.btn:disabled { opacity: .45; cursor: default; }
+    .grid { display: grid; grid-template-columns: 1fr 280px; gap: 20px; }
+    @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .card h2 { margin: 0 0 12px; font-size: 16px; }
+    ol.jeux { list-style: none; margin: 0; padding: 0; }
+    ol.jeux li {
+      display: grid;
+      grid-template-columns: 44px 1fr 88px auto;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    ol.jeux li img { width: 44px; height: 44px; border-radius: 10px; background: #eee; object-fit: cover; }
+    .nom { font-weight: 600; }
+    .meta { font-size: 12px; color: var(--mute); }
+    .arrow { display: flex; flex-direction: column; gap: 2px; }
+    .arrow button { width: 28px; height: 22px; cursor: pointer; }
+    .empty { color: var(--mute); font-style: italic; padding: 12px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+    th { font-size: 12px; color: var(--mute); font-weight: 600; }
+    td.num, th.num { text-align: right; }
+    .ok { color: var(--ok); }
+    .help { color: var(--ink2); }
+    .help h2 { margin-top: 1.4em; }
+    .help ul { padding-left: 18px; }
+    code { background: #efe4d4; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+    .checklist { list-style: none; padding: 0; }
+    .checklist li { margin: 8px 0; padding-left: 22px; position: relative; }
+    .checklist li::before { content: "☐"; position: absolute; left: 0; }
+    footer { font-size: 12px; color: var(--mute); margin-top: 24px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Auto-promotion</h1>
+    <p>Liste en ligne — les changements faits ici doivent être publiés de nouveau pour prendre effet</p>
+    <nav>
+      <button type="button" class="active" data-tab="config">Configuration</button>
+      <button type="button" data-tab="stats">Affichages et clics</button>
+      <button type="button" data-tab="pub">Publication</button>
+    </nav>
+  </header>
+  <div class="wrap">
+    <div class="banner" id="banner">
+      Chargez le fichier <code>config.json</code> (bouton ci-dessous). Tant qu’il n’est pas en ligne, les applis déjà installées ne le lisent pas encore.
+    </div>
+
+    <section id="tab-config">
+      <div class="row">
+        <button class="btn" type="button" id="btnLoadRemote">Essayer de charger config.json</button>
+        <label class="btn secondary" style="display:inline-block;padding:8px 14px;cursor:pointer;color:#fff">
+          Ouvrir un JSON
+          <input type="file" id="fileConfig" accept="application/json,.json" hidden>
+        </label>
+        <button class="btn" type="button" id="btnSave">Télécharger le JSON modifié</button>
+        <span id="configMeta" class="meta"></span>
+      </div>
+      <div class="row">
+        <div>
+          <label for="source">Appli source</label>
+          <select id="source"></select>
+        </div>
+        <div>
+          <label for="langue">Langue du téléphone</label>
+          <select id="langue"></select>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="card">
+          <h2 id="listTitle">Jeux promus (ordre = priorité)</h2>
+          <p class="meta">Le premier est la vedette (pub maison et carte du jour). Le poids sert à une rotation si l’appli en fait une. L’appli source n’apparaît jamais.</p>
+          <ol class="jeux" id="liste"></ol>
+          <div id="ajouterWrap" class="row" style="margin-top:12px"></div>
+        </div>
+        <div class="card">
+          <h2>Aperçu</h2>
+          <p class="meta" id="apercuTxt"></p>
+          <div id="apercu"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-stats" hidden>
+      <div class="card help">
+        <h2>D’où viendront les chiffres</h2>
+        <p>Projet Firebase <code>kuriocie-jeux</code>. Événements <code>cross_promo_view</code> (affichage) et <code>cross_promo_click</code> (clic), avec les paramètres <code>jeu_source</code>, <code>jeu_cible</code>, <code>langue</code> et, après la prochaine mise à jour des applis, <code>emplacement</code>.</p>
+        <p>Taux de clic = clics ÷ affichages. Les volumes déjà collectés par la Boule, Zora et l’Oracle n’ont pas encore été lus : la console n’a pas été ouverte.</p>
+        <h2>Ce qu’il faut activer (après oui)</h2>
+        <ul>
+          <li><strong>Export BigQuery</strong> dans Firebase (projet <code>kuriocie-jeux</code>) — recommandé pour cette page. Les événements antérieurs à l’activation ne sont en général pas reversés. Délai typique : le lendemain.</li>
+          <li>Ou l’<strong>API Google Analytics Data (GA4)</strong>, après avoir déclaré <code>jeu_source</code>, <code>jeu_cible</code>, <code>langue</code> et <code>emplacement</code> comme dimensions personnalisées.</li>
+          <li><strong>Liaison Play Console ↔ Firebase</strong> pour tenter de compter les installations (liens déjà étiquetés <code>utm_medium=cross_promo</code> sur Boule, Zora et Oracle ; à ajouter au Génie).</li>
+        </ul>
+        <p>Pour ne pas mettre de secret dans le site, un robot pourra déposer ici un <code>stats.json</code> une fois par jour. En attendant, vous pouvez en importer un à la main (voir <code>stats.exemple.json</code>).</p>
+        <div class="row">
+          <label class="btn secondary" style="display:inline-block;padding:8px 14px;cursor:pointer;color:#fff">
+            Importer stats.json
+            <input type="file" id="fileStats" accept="application/json,.json" hidden>
+          </label>
+          <span id="statsMeta" class="meta">Aucune donnée pour l’instant.</span>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px;overflow:auto">
+        <h2>Par appli source, jeu promu et langue</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Source</th><th>Jeu promu</th><th>Langue</th><th>Emplacement</th>
+              <th class="num">Affichages</th><th class="num">Clics</th><th class="num">Taux de clic</th>
+            </tr>
+          </thead>
+          <tbody id="statsBody">
+            <tr><td colspan="7" class="empty">En attente de l’activation Firebase / BigQuery (ou d’un import).</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="tab-pub" hidden>
+      <div class="card help">
+        <h2>Où ce fichier serait publié</h2>
+        <p>Sur le site déjà existant des politiques de confidentialité, dépôt <code>kuriocie23/kuriocie23.github.io</code> :</p>
+        <ul>
+          <li>Config : <code>https://kuriocie23.github.io/autopromo/config.json</code></li>
+          <li>Cette page : <code>https://kuriocie23.github.io/autopromo/</code></li>
+          <li>Icônes : <code>https://kuriocie23.github.io/autopromo/icons/boule.png</code> (etc.)</li>
+        </ul>
+        <p>Ces adresses sont maintenant en ligne. Les applis déjà installées ne liront la liste qu’après une première mise à jour contenant le lecteur. Ensuite, republier <code>config.json</code> suffit pour changer l’auto-promotion, sans nouvelle version.</p>
+        <h2>Oui encore nécessaires</h2>
+        <ul class="checklist">
+          <li>Publier le dossier <code>autopromo/</code> sur github.io (config, page, icônes) — fait le 23/11/2026.</li>
+          <li>Ouvrir la console Firebase <code>kuriocie-jeux</code> pour voir les clics déjà reçus.</li>
+          <li>Activer l’export BigQuery, les dimensions GA4, et la liaison Play Console.</li>
+          <li>Approuver, une appli après l’autre, la mise à jour qui embarque le lecteur JSON (un seul envoi Play à la fois).</li>
+        </ul>
+        <p>La France et la Colombie restent exclues dans la Play Console. La langue française est bien présente dans la config.</p>
+      </div>
+    </section>
+
+    <footer>Kuriocie — auto-promotion — 23 novembre 2026, Europe/Paris. Ne contient aucun mot de passe ni clé.</footer>
+  </div>
+<script>
+let config = null;
+let dirty = false;
+
+const $ = (id) => document.getElementById(id);
+const iconSrc = (game) => {
+  const local = "icons/" + game.id + ".png";
+  return local;
+};
+
+function showTab(name) {
+  document.querySelectorAll("nav button").forEach((b) => {
+    b.classList.toggle("active", b.dataset.tab === name);
+  });
+  ["config", "stats", "pub"].forEach((t) => {
+    $("tab-" + t).hidden = t !== name;
+  });
+}
+document.querySelectorAll("nav button").forEach((b) => {
+  b.addEventListener("click", () => showTab(b.dataset.tab));
+});
+
+function sources() {
+  return Object.keys(config.sources || {});
+}
+
+function languesPour(sourceId) {
+  const par = config.sources[sourceId].par_langue || {};
+  const names = (config.langues || {});
+  return Object.keys(par).map((code) => ({
+    code,
+    nom: (names[code] && names[code].nom) || code,
+    n: (par[code] || []).length,
+  }));
+}
+
+function remplirSelects() {
+  const src = $("source");
+  const cur = src.value;
+  src.innerHTML = "";
+  for (const id of sources()) {
+    const o = document.createElement("option");
+    o.value = id;
+    o.textContent = (config.sources[id].nom || id) + " (" + id + ")";
+    src.appendChild(o);
+  }
+  if (cur && sources().includes(cur)) src.value = cur;
+  remplirLangues();
+}
+
+function remplirLangues() {
+  const sel = $("langue");
+  const cur = sel.value;
+  const list = languesPour($("source").value);
+  // langues avec jeux d'abord, fr en tête, puis les vides
+  list.sort((a, b) => {
+    if (a.code === "fr") return -1;
+    if (b.code === "fr") return 1;
+    if (a.n && !b.n) return -1;
+    if (!a.n && b.n) return 1;
+    return a.nom.localeCompare(b.nom, "fr");
+  });
+  sel.innerHTML = "";
+  for (const l of list) {
+    const o = document.createElement("option");
+    o.value = l.code;
+    o.textContent = l.nom + " (" + l.code + ")" + (l.n ? " — " + l.n + " jeu(x)" : " — aucun");
+    sel.appendChild(o);
+  }
+  if (cur && list.some((l) => l.code === cur)) sel.value = cur;
+  else if (list.some((l) => l.code === "fr")) sel.value = "fr";
+  rendreListe();
+}
+
+function listeCourante() {
+  const s = $("source").value;
+  const l = $("langue").value;
+  return config.sources[s].par_langue[l] || [];
+}
+
+function setListe(arr) {
+  const s = $("source").value;
+  const l = $("langue").value;
+  config.sources[s].par_langue[l] = arr;
+  dirty = true;
+  rendreListe();
+}
+
+function rendreListe() {
+  const s = $("source").value;
+  const l = $("langue").value;
+  const games = listeCourante();
+  $("listTitle").textContent = "Jeux promus pour " + (config.sources[s].nom || s) + " en " + l;
+  const ol = $("liste");
+  ol.innerHTML = "";
+  if (!games.length) {
+    ol.innerHTML = "<li class='empty' style='display:block'>Aucun autre jeu dans cette langue : masquer « Plus de jeux » et la pub maison.</li>";
+  } else {
+    games.forEach((g, i) => {
+      const li = document.createElement("li");
+      li.innerHTML =
+        "<img alt='' src='" + iconSrc(g) + "' onerror=\"this.style.visibility='hidden'\">" +
+        "<div><div class='nom'>" + (i === 0 ? "Vedette — " : "") + escapeHtml(g.nom) + "</div>" +
+        "<div class='meta'>" + escapeHtml(g.package) + "</div></div>" +
+        "<label>Poids <input type='number' min='1' max='99' value='" + (g.poids || 1) + "' data-i='" + i + "'></label>" +
+        "<div class='arrow'>" +
+          "<button type='button' data-move='-1' data-i='" + i + "' " + (i === 0 ? "disabled" : "") + ">▲</button>" +
+          "<button type='button' data-move='1' data-i='" + i + "' " + (i === games.length - 1 ? "disabled" : "") + ">▼</button>" +
+          "<button type='button' data-del='" + i + "' title='Retirer'>✕</button>" +
+        "</div>";
+      ol.appendChild(li);
+    });
+    ol.querySelectorAll("input[type=number]").forEach((inp) => {
+      inp.addEventListener("change", () => {
+        const i = +inp.dataset.i;
+        const arr = listeCourante().slice();
+        arr[i] = { ...arr[i], poids: Math.max(1, parseInt(inp.value, 10) || 1) };
+        setListe(arr);
+      });
+    });
+    ol.querySelectorAll("[data-move]").forEach((b) => {
+      b.addEventListener("click", () => {
+        const i = +b.dataset.i;
+        const d = +b.dataset.move;
+        const arr = listeCourante().slice();
+        const j = i + d;
+        if (j < 0 || j >= arr.length) return;
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+        setListe(arr);
+      });
+    });
+    ol.querySelectorAll("[data-del]").forEach((b) => {
+      b.addEventListener("click", () => {
+        const arr = listeCourante().slice();
+        arr.splice(+b.dataset.del, 1);
+        setListe(arr);
+      });
+    });
+  }
+
+  const present = new Set(games.map((g) => g.id));
+  const catalogue = Object.values(config.jeux || {}).filter(
+    (j) => j.published && j.id !== s && (j.langues || []).includes(l) && !present.has(j.id)
+  );
+  const wrap = $("ajouterWrap");
+  if (catalogue.length) {
+    wrap.innerHTML = "<label for='ajout'>Ajouter</label><select id='ajout'></select><button class='btn ghost' type='button' id='btnAjout'>Ajouter</button>";
+    const sel = $("ajout");
+    catalogue.forEach((j) => {
+      const o = document.createElement("option");
+      o.value = j.id;
+      o.textContent = j.nom;
+      sel.appendChild(o);
+    });
+    $("btnAjout").addEventListener("click", () => {
+      const id = $("ajout").value;
+      const j = config.jeux[id];
+      const item = {
+        id: j.id,
+        package: j.package,
+        nom: j.nom,
+        icone: j.icone,
+        icone_play: j.icone_play,
+        icone_locale: j.icone_locale,
+        lien_play: j.lien_play,
+        poids: j.poids_defaut || 1,
+      };
+      setListe(listeCourante().concat([item]));
+      remplirLangues();
+    });
+  } else {
+    wrap.innerHTML = "";
+  }
+
+  const ap = $("apercu");
+  $("apercuTxt").textContent = games.length
+    ? "Un joueur dont le téléphone est en " + l + " verra, dans " + (config.sources[s].nom || s) + " :"
+    : "Rien à afficher dans cette langue.";
+  ap.innerHTML = games.map((g, i) =>
+    "<div style='display:flex;gap:8px;align-items:center;margin:8px 0'>" +
+    "<img src='" + iconSrc(g) + "' alt='' width='36' height='36' style='border-radius:8px' onerror=\"this.style.visibility='hidden'\">" +
+    "<div><strong>" + (i + 1) + ". " + escapeHtml(g.nom) + "</strong><div class='meta'>poids " + (g.poids || 1) + "</div></div></div>"
+  ).join("");
+
+  $("configMeta").textContent = metaTexte();
+}
+
+function metaTexte() {
+  if (!config) return "";
+  return (config.updated_at || "") + (dirty ? " — modifications non enregistrées" : "") +
+    (config.statut ? " — " + config.statut : "");
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+
+function chargerObjet(obj, from) {
+  if (!obj || !obj.sources) {
+    alert("Fichier invalide : pas de clé sources.");
+    return;
+  }
+  config = obj;
+  dirty = false;
+  $("banner").textContent = "Config chargée depuis " + from + ". Statut : " + (obj.statut || "inconnu") + ".";
+  remplirSelects();
+}
+
+async function essayerFetch() {
+  try {
+    const r = await fetch("config.json", { cache: "no-store" });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    chargerObjet(await r.json(), "config.json");
+  } catch (e) {
+    $("banner").textContent = "Impossible de lire config.json automatiquement (" + e.message +
+      "). Utilisez « Ouvrir un JSON » et choisissez le fichier à côté de cette page.";
+  }
+}
+
+$("btnLoadRemote").addEventListener("click", essayerFetch);
+$("fileConfig").addEventListener("change", async (ev) => {
+  const f = ev.target.files[0];
+  if (!f) return;
+  chargerObjet(JSON.parse(await f.text()), f.name);
+});
+$("source").addEventListener("change", remplirLangues);
+$("langue").addEventListener("change", rendreListe);
+$("btnSave").addEventListener("click", () => {
+  if (!config) return;
+  const out = { ...config };
+  out.updated_at = new Date().toISOString();
+  out.statut = "brouillon — non publié";
+  const blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "config.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  dirty = false;
+  config.updated_at = out.updated_at;
+  $("configMeta").textContent = metaTexte();
+});
+
+function rendreStats(data) {
+  const body = $("statsBody");
+  const lignes = (data && data.lignes) || [];
+  if (!lignes.length) {
+    body.innerHTML = "<tr><td colspan='7' class='empty'>Aucune ligne dans ce fichier.</td></tr>";
+    return;
+  }
+  body.innerHTML = lignes.map((r) => {
+    const v = +r.vues || 0, c = +r.clics || 0;
+    const taux = v ? ((100 * c) / v).toFixed(1) + " %" : "—";
+    return "<tr><td>" + escapeHtml(r.jeu_source) + "</td><td>" + escapeHtml(r.jeu_cible) +
+      "</td><td>" + escapeHtml(r.langue) + "</td><td>" + escapeHtml(r.emplacement || "") +
+      "</td><td class='num'>" + v + "</td><td class='num'>" + c +
+      "</td><td class='num'>" + taux + "</td></tr>";
+  }).join("");
+  $("statsMeta").textContent = (data.periode ? "Période : " + data.periode + " — " : "") +
+    lignes.length + " ligne(s).";
+}
+$("fileStats").addEventListener("change", async (ev) => {
+  const f = ev.target.files[0];
+  if (!f) return;
+  rendreStats(JSON.parse(await f.text()));
+});
+
+essayerFetch();
+</script>
+</body>
+</html>
