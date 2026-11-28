@@ -1,0 +1,21 @@
+{
+  "periode": "2020-01-01 → 2026-11-28",
+  "source": "API Google Analytics Data (GA4), projet Firebase kuriocie-jeux",
+  "evenements": [
+    "cross_promo_view",
+    "cross_promo_click"
+  ],
+  "genere_le": "2026-11-28 17:44 CET",
+  "ventile": true,
+  "lignes": [
+    {
+      "jeu_source": "(non renseigné)",
+      "jeu_cible": "(non renseigné)",
+      "langue": "(non renseigné)",
+      "emplacement": "",
+      "vues": 10416,
+      "clics": 1108
+    }
+  ],
+  "avertissement": "Les totaux sont bons, mais le détail par jeu, langue et emplacement n'est pas encore disponible : les dimensions viennent d'être déclarées. Compter 24 à 48 h (les événements déjà passés restent en général non ventilés)."
+}
