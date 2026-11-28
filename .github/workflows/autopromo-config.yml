@@ -1,0 +1,36 @@
+name: Contrôle config auto-promotion
+
+# Vérifie qu'un jeu n'est proposé que dans les langues où il est traduit,
+# que la Boule et le Génie sont présents partout où ils existent, et
+# qu'aucun jeu ne se propose lui-même. Échoue en cas d'erreur.
+
+on:
+  push:
+    paths:
+      - "autopromo/config.json"
+      - "autopromo/scripts/verifier_config.py"
+      - ".github/workflows/autopromo-config.yml"
+  pull_request:
+    paths:
+      - "autopromo/config.json"
+      - "autopromo/scripts/verifier_config.py"
+      - ".github/workflows/autopromo-config.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verifier-config:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Contrôler config.json
+        run: python3 autopromo/scripts/verifier_config.py

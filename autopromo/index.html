@@ -146,6 +146,7 @@
         <div>
           <label for="langue">Langue du téléphone</label>
           <select id="langue"></select>
+          <div class="meta" style="margin-top:4px">Seules les langues où l’appli source est traduite sont listées. Zora, l’Oracle et le Cœur : français seulement.</div>
         </div>
       </div>
       <div class="grid">
@@ -244,14 +245,38 @@ function sources() {
   return Object.keys(config.sources || {});
 }
 
+function languesDuJeu(sourceId) {
+  const jeu = (config.jeux || {})[sourceId];
+  return (jeu && Array.isArray(jeu.langues)) ? jeu.langues : [];
+}
+
 function languesPour(sourceId) {
   const par = config.sources[sourceId].par_langue || {};
   const names = (config.langues || {});
-  return Object.keys(par).map((code) => ({
+  const autorisees = languesDuJeu(sourceId);
+  // Uniquement les langues où l'appli source est traduite (évite d'afficher
+  // 74 langues pour Zora, qui n'existe qu'en français).
+  const codes = autorisees.length ? autorisees.slice() : Object.keys(par);
+  return codes.map((code) => ({
     code,
     nom: (names[code] && names[code].nom) || code,
     n: (par[code] || []).length,
   }));
+}
+
+function alertesConfig() {
+  const msgs = [];
+  const jeux = config.jeux || {};
+  const sources = config.sources || {};
+  for (const src of Object.keys(sources)) {
+    const autorisees = new Set((jeux[src] && jeux[src].langues) || []);
+    const par = sources[src].par_langue || {};
+    const extra = Object.keys(par).filter((c) => autorisees.size && !autorisees.has(c));
+    if (extra.length) {
+      msgs.push(src + " a " + extra.length + " langue(s) en trop dans par_langue (ex. " + extra.slice(0, 5).join(", ") + "). La page ne les affiche pas. Relancer verifier_config.py.");
+    }
+  }
+  return msgs;
 }
 
 function remplirSelects() {
@@ -424,7 +449,9 @@ function chargerObjet(obj, from) {
   }
   config = obj;
   dirty = false;
-  $("banner").textContent = "Config chargée depuis " + from + ". Statut : " + (obj.statut || "inconnu") + ".";
+  const alertes = alertesConfig();
+  $("banner").textContent = "Config chargée depuis " + from + ". Statut : " + (obj.statut || "inconnu") + "."
+    + (alertes.length ? " Attention : " + alertes.join(" ") : "");
   remplirSelects();
 }
 
