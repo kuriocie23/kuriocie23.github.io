@@ -155,7 +155,10 @@ def credentials():
 
 
 def access_token(creds) -> str:
-    from google.auth.transport.requests import Request
+    try:
+        from google.auth.transport.requests import Request
+    except ImportError:
+        from google.auth.transport._http_client import Request
 
     if not creds.valid:
         creds.refresh(Request())
@@ -247,12 +250,20 @@ def recuperer(token: str, property_id: str, start: str, end: str) -> dict[str, A
     try:
         rows = toutes_les_lignes(token, property_id, corps_rapport(start, end, [EVENT_VIEW, EVENT_CLICK], True))
         vues_rows, clics_rows = separer_par_evenement(rows)
-        return construire_stats(
-            periode=periode,
-            vues=lignes_depuis_rapport(vues_rows, True),
-            clics=lignes_depuis_rapport(clics_rows, True),
-            ventile=True,
-        )
+        vues = lignes_depuis_rapport(vues_rows, True)
+        clics = lignes_depuis_rapport(clics_rows, True)
+        data = construire_stats(periode=periode, vues=vues, clics=clics, ventile=True)
+        if data["lignes"] and all(
+            r.get("jeu_source") in ("(non renseigné)", "(tous)")
+            and r.get("jeu_cible") in ("(non renseigné)", "(tous)")
+            for r in data["lignes"]
+        ):
+            data["avertissement"] = (
+                "Les totaux sont bons, mais le détail par jeu, langue et emplacement "
+                "n'est pas encore disponible : les dimensions viennent d'être déclarées. "
+                "Compter 24 à 48 h (les événements déjà passés restent en général non ventilés)."
+            )
+        return data
     except RuntimeError as exc:
         if not est_erreur_dimensions(str(exc)):
             raise

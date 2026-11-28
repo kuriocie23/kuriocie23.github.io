@@ -1,0 +1,12 @@
+# Worker Cloudflare « autopromo-live » — temps réel des pubs internes.
+# Gratuit (sous-domaine workers.dev). Aucun secret dans ce fichier.
+name = "autopromo-live"
+main = "worker.js"
+compatibility_date = "2026-11-28"
+workers_dev = true
+account_id = "e9712a8739030f1dbcfc687f095600e0"
+
+[vars]
+GA4_PROPERTY_ID = "563415076"
+# Secret à poser (jamais ici) :
+#   wrangler secret put GA4_SERVICE_ACCOUNT_JSON < /workspace/secrets/autopromo_stats_sa.json

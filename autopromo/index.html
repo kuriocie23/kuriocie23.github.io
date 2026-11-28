@@ -111,6 +111,13 @@
     .checklist li { margin: 8px 0; padding-left: 22px; position: relative; }
     .checklist li::before { content: "☐"; position: absolute; left: 0; }
     footer { font-size: 12px; color: var(--mute); margin-top: 24px; }
+    .live { margin-bottom: 16px; border-color: var(--gold); }
+    .live h2 { margin-bottom: 8px; }
+    .live-nums { display: flex; gap: 24px; flex-wrap: wrap; margin: 8px 0 4px; }
+    .live-nums div { min-width: 120px; }
+    .live-nums .val { font-size: 28px; font-weight: 650; color: var(--ink); line-height: 1.1; }
+    .live-nums .lbl { font-size: 12px; color: var(--mute); }
+    .live .etat { margin: 8px 0 0; }
   </style>
 </head>
 <body>
@@ -165,13 +172,22 @@
     </section>
 
     <section id="tab-stats" hidden>
+      <div class="card live" id="liveBox">
+        <h2>En direct (30 dernières minutes)</h2>
+        <p class="meta">Chiffres lus automatiquement, sans IA. Actualisés toutes les 60 secondes. Totaux seulement : le détail par jeu n’est pas disponible en temps réel.</p>
+        <div class="live-nums">
+          <div><div class="val" id="liveVues">…</div><div class="lbl">Affichages</div></div>
+          <div><div class="val" id="liveClics">…</div><div class="lbl">Clics</div></div>
+        </div>
+        <p class="meta etat" id="liveMeta">Chargement du temps réel…</p>
+      </div>
       <div class="card help">
         <h2>D’où viennent les chiffres</h2>
         <p>Projet Firebase <code>kuriocie-jeux</code>. Événements <code>cross_promo_view</code> (affichage) et <code>cross_promo_click</code> (clic), avec les paramètres <code>jeu_source</code>, <code>jeu_cible</code>, <code>langue</code> et <code>emplacement</code>.</p>
         <p>Taux de clic = clics ÷ affichages. La Boule, Zora et l’Oracle envoient déjà ces événements ; le Génie bientôt.</p>
         <h2>Comment ils sont lus (gratuit, sans facturation)</h2>
         <p>On utilise l’<strong>API Google Analytics Data (GA4)</strong>, en lecture seule. Rien n’est payant : Google donne un quota quotidien, sans activer la facturation. On n’active <strong>pas</strong> l’export BigQuery (plus lourd, et une fausse manœuvre peut ouvrir la facturation).</p>
-        <p>Un robot dépose ici un <code>stats.json</code> une fois par jour. La marche à suivre (clics restants dans les consoles) est dans <a href="STATISTIQUES.md">STATISTIQUES.md</a>. Vous pouvez aussi importer un fichier à la main (modèle : <code>stats.exemple.json</code>).</p>
+        <p>Les totaux du tableau sont déposés chaque matin (vers 7 h, heure de Paris, en hiver) dans <code>stats.json</code>, automatiquement, sans IA. Le cadre ci-dessus interroge un petit serveur (Worker <code>autopromo-live</code>) pour les 30 dernières minutes. Consignes : <a href="STATISTIQUES.md">STATISTIQUES.md</a>. Vous pouvez aussi importer un fichier à la main (modèle : <code>stats.exemple.json</code>).</p>
         <div class="row">
           <label class="btn secondary" style="display:inline-block;padding:8px 14px;cursor:pointer;color:#fff">
             Importer stats.json
@@ -209,8 +225,8 @@
         <h2>Oui encore nécessaires</h2>
         <ul class="checklist">
           <li>Publier le dossier <code>autopromo/</code> sur github.io (config, page, icônes) — fait le 23/11/2026.</li>
-          <li>Script quotidien et chargement automatique de <code>stats.json</code> — préparés le 28/11/2026 (voir <a href="STATISTIQUES.md">STATISTIQUES.md</a>).</li>
-          <li>Dans les consoles (compte kuriocie23) : activer l’API GA4, créer le compte de service en lecture, déclarer les 4 dimensions, déposer le secret GitHub. Ne pas activer la facturation.</li>
+          <li>Statistiques branchées le 28/11/2026 : API GA4 (propriété 563415076), dépôt quotidien de <code>stats.json</code>, temps réel via le Worker <code>autopromo-live</code> (voir <a href="STATISTIQUES.md">STATISTIQUES.md</a>).</li>
+          <li>Le détail par jeu et par langue du tableau quotidien apparaît 24 à 48 h après la déclaration des dimensions. Le temps réel reste en totaux.</li>
           <li>Approuver, une appli après l’autre, la mise à jour qui embarque le lecteur JSON (un seul envoi Play à la fois).</li>
         </ul>
         <p>La France et la Colombie restent exclues dans la Play Console. La langue française est bien présente dans la config.</p>
@@ -534,7 +550,35 @@ $("fileStats").addEventListener("change", async (ev) => {
   rendreStats(JSON.parse(await f.text()));
 });
 
+const LIVE_URL = "https://autopromo-live.kuriocie23.workers.dev/";
+
+async function chargerTempsReel() {
+  const meta = $("liveMeta");
+  try {
+    const r = await fetch(LIVE_URL, { cache: "no-store" });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const data = await r.json();
+    $("liveVues").textContent = (data.vues != null) ? data.vues : "—";
+    $("liveClics").textContent = (data.clics != null) ? data.clics : "—";
+    if (data.erreur && data.vues == 0 && data.clics == 0) {
+      meta.textContent = data.message || "Temps réel indisponible pour le moment.";
+      return;
+    }
+    const bits = [];
+    if (data.message) bits.push(data.message);
+    else bits.push("C’est le total des 30 dernières minutes, tous jeux confondus.");
+    if (data.mis_a_jour) bits.push("Mis à jour : " + data.mis_a_jour + ".");
+    meta.textContent = bits.join(" ");
+  } catch (e) {
+    $("liveVues").textContent = "—";
+    $("liveClics").textContent = "—";
+    meta.textContent = "Impossible de lire le temps réel (" + e.message + "). Réessayez dans une minute.";
+  }
+}
+
 essayerFetch();
+chargerTempsReel();
+setInterval(chargerTempsReel, 60000);
 </script>
 </body>
 </html>

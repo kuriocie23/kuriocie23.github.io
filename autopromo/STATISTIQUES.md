@@ -27,11 +27,11 @@ Les paramètres ne sont lisibles dans l’API **qu’après** avoir été décla
 - Automatisation quotidienne (07:00 Europe/Paris en hiver) : `.github/workflows/autopromo-stats.yml`
 - La page charge automatiquement `stats.json` dès qu’il est publié. On peut aussi l’importer à la main (modèle : `stats.exemple.json`).
 
-Le workflow ne produira des chiffres qu’après les clics ci-dessous (API, compte de service, dimensions, secret GitHub). `gcloud` et `firebase` n’étaient pas connectés sur la machine du robot au moment de la préparation : ces étapes se font dans le navigateur, compte `kuriocie23`.
+Les réglages des consoles et le secret GitHub ont été posés le 28 novembre 2026 (voir la section « État au 28 novembre 2026 » plus bas). Le détail par jeu et par langue peut rester vide 24 à 48 h.
 
-## Ce qui reste à cliquer (rien de payant)
+## Marche à suivre des consoles (fait le 28/11/2026, conservé comme mode d’emploi)
 
-Faire tout avec le compte **kuriocie23**. Ne jamais coller la clé JSON dans le dépôt, un document Drive, un chat ou un e-mail.
+Ces clics ont déjà été faits. Ils restent ici au cas où il faudrait recommencer (nouvelle clé, nouvelle propriété). Faire tout avec le compte **kuriocie23**. Ne jamais coller la clé JSON dans le dépôt, un document Drive, un chat ou un e-mail.
 
 ### 1. Noter le numéro de la propriété GA4
 
@@ -130,3 +130,41 @@ python3 autopromo/scripts/fetch_autopromo_stats.py --self-test
 - Mettre la clé JSON dans le dépôt, un gist, le Drive, ou PASSATION_CHEF.
 - Utiliser un rôle plus élevé que Lecteur sur la propriété GA4.
 - Modifier `main` d’un autre dépôt pour cette tâche.
+
+## État au 28 novembre 2026 (branché, avec temps réel)
+
+Tout ce qui suit a été fait, sans activer la facturation, sans mettre la clé dans le Drive ni dans le dépôt.
+
+- Propriété GA4 : `563415076` (kuriocie-jeux).
+- API Google Analytics Data activée sur le projet `kuriocie-jeux`.
+- Dimensions personnalisées créées (portée Événement) : `jeu_source`, `jeu_cible`, `langue`, `emplacement`. Le détail par jeu et par langue n’apparaît en général que 24 à 48 h après, et pas pour les événements déjà passés. En attendant, le tableau quotidien affiche les totaux.
+- Compte de service : `autopromo-stats@kuriocie-jeux.iam.gserviceaccount.com`, rôle Lecteur sur la propriété.
+- Clé JSON : uniquement sur la box, fichier `/workspace/secrets/autopromo_stats_sa.json`. Ne jamais l’afficher, ni la copier dans le Drive, le dépôt ou un chat, ni la supprimer.
+- Variable GitHub `GA4_PROPERTY_ID` et secret `GA4_SERVICE_ACCOUNT_JSON` posés sur le dépôt `kuriocie23/kuriocie23.github.io`.
+- Workflow quotidien : https://github.com/kuriocie23/kuriocie23.github.io/actions/workflows/autopromo-stats.yml (chaque matin vers 7 h, heure de Paris en hiver, sans IA).
+- Temps réel : Worker Cloudflare `autopromo-live`, adresse https://autopromo-live.kuriocie23.workers.dev/ — code dans `autopromo/live-worker/`. Il appelle `runRealtimeReport` (30 dernières minutes, totaux `cross_promo_view` / `cross_promo_click`), met le résultat en cache 60 s, et n’autorise le CORS que depuis `https://kuriocie23.github.io`. L’API Realtime n’accepte pas les dimensions d’événement : pas de détail par jeu en direct (doc : https://developers.google.com/analytics/devguides/reporting/data/v1/realtime-api-schema). La page n’a aucune clé : elle interroge seulement cette adresse, toutes les 60 s.
+- Secret du Worker : `GA4_SERVICE_ACCOUNT_JSON` (la même clé, posée avec `wrangler secret put`, pas dans `wrangler.toml`).
+
+### Relancer
+
+- Totaux du matin : https://github.com/kuriocie23/kuriocie23.github.io/actions/workflows/autopromo-stats.yml — **Run workflow** — branche `main`. Ou, en local, sans committer la clé :
+
+```bash
+export GA4_PROPERTY_ID="563415076"
+export GOOGLE_APPLICATION_CREDENTIALS="/workspace/secrets/autopromo_stats_sa.json"
+python3 -m pip install "google-auth>=2" "requests>=2"
+python3 autopromo/scripts/fetch_autopromo_stats.py --output autopromo/stats.json
+# pousser seulement stats.json
+```
+
+- Temps réel (si le cadre « En direct » est vide) :
+
+```bash
+cd autopromo/live-worker
+# wrangler est sur la box : /tmp/wr/node_modules/.bin/wrangler
+wrangler deploy
+# seulement si le secret a été perdu (ne pas afficher la clé) :
+wrangler secret put GA4_SERVICE_ACCOUNT_JSON < /workspace/secrets/autopromo_stats_sa.json
+curl -sS https://autopromo-live.kuriocie23.workers.dev/
+```
+
