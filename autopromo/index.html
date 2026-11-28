@@ -165,16 +165,12 @@
 
     <section id="tab-stats" hidden>
       <div class="card help">
-        <h2>D’où viendront les chiffres</h2>
-        <p>Projet Firebase <code>kuriocie-jeux</code>. Événements <code>cross_promo_view</code> (affichage) et <code>cross_promo_click</code> (clic), avec les paramètres <code>jeu_source</code>, <code>jeu_cible</code>, <code>langue</code> et, après la prochaine mise à jour des applis, <code>emplacement</code>.</p>
-        <p>Taux de clic = clics ÷ affichages. Les volumes déjà collectés par la Boule, Zora et l’Oracle n’ont pas encore été lus : la console n’a pas été ouverte.</p>
-        <h2>Ce qu’il faut activer (après oui)</h2>
-        <ul>
-          <li><strong>Export BigQuery</strong> dans Firebase (projet <code>kuriocie-jeux</code>) — recommandé pour cette page. Les événements antérieurs à l’activation ne sont en général pas reversés. Délai typique : le lendemain.</li>
-          <li>Ou l’<strong>API Google Analytics Data (GA4)</strong>, après avoir déclaré <code>jeu_source</code>, <code>jeu_cible</code>, <code>langue</code> et <code>emplacement</code> comme dimensions personnalisées.</li>
-          <li><strong>Liaison Play Console ↔ Firebase</strong> pour tenter de compter les installations (liens déjà étiquetés <code>utm_medium=cross_promo</code> sur Boule, Zora et Oracle ; à ajouter au Génie).</li>
-        </ul>
-        <p>Pour ne pas mettre de secret dans le site, un robot pourra déposer ici un <code>stats.json</code> une fois par jour. En attendant, vous pouvez en importer un à la main (voir <code>stats.exemple.json</code>).</p>
+        <h2>D’où viennent les chiffres</h2>
+        <p>Projet Firebase <code>kuriocie-jeux</code>. Événements <code>cross_promo_view</code> (affichage) et <code>cross_promo_click</code> (clic), avec les paramètres <code>jeu_source</code>, <code>jeu_cible</code>, <code>langue</code> et <code>emplacement</code>.</p>
+        <p>Taux de clic = clics ÷ affichages. La Boule, Zora et l’Oracle envoient déjà ces événements ; le Génie bientôt.</p>
+        <h2>Comment ils sont lus (gratuit, sans facturation)</h2>
+        <p>On utilise l’<strong>API Google Analytics Data (GA4)</strong>, en lecture seule. Rien n’est payant : Google donne un quota quotidien, sans activer la facturation. On n’active <strong>pas</strong> l’export BigQuery (plus lourd, et une fausse manœuvre peut ouvrir la facturation).</p>
+        <p>Un robot dépose ici un <code>stats.json</code> une fois par jour. La marche à suivre (clics restants dans les consoles) est dans <a href="STATISTIQUES.md">STATISTIQUES.md</a>. Vous pouvez aussi importer un fichier à la main (modèle : <code>stats.exemple.json</code>).</p>
         <div class="row">
           <label class="btn secondary" style="display:inline-block;padding:8px 14px;cursor:pointer;color:#fff">
             Importer stats.json
@@ -193,7 +189,7 @@
             </tr>
           </thead>
           <tbody id="statsBody">
-            <tr><td colspan="7" class="empty">En attente de l’activation Firebase / BigQuery (ou d’un import).</td></tr>
+            <tr><td colspan="7" class="empty">En attente de stats.json (voir STATISTIQUES.md) ou d’un import manuel.</td></tr>
           </tbody>
         </table>
       </div>
@@ -212,15 +208,15 @@
         <h2>Oui encore nécessaires</h2>
         <ul class="checklist">
           <li>Publier le dossier <code>autopromo/</code> sur github.io (config, page, icônes) — fait le 23/11/2026.</li>
-          <li>Ouvrir la console Firebase <code>kuriocie-jeux</code> pour voir les clics déjà reçus.</li>
-          <li>Activer l’export BigQuery, les dimensions GA4, et la liaison Play Console.</li>
+          <li>Script quotidien et chargement automatique de <code>stats.json</code> — préparés le 28/11/2026 (voir <a href="STATISTIQUES.md">STATISTIQUES.md</a>).</li>
+          <li>Dans les consoles (compte kuriocie23) : activer l’API GA4, créer le compte de service en lecture, déclarer les 4 dimensions, déposer le secret GitHub. Ne pas activer la facturation.</li>
           <li>Approuver, une appli après l’autre, la mise à jour qui embarque le lecteur JSON (un seul envoi Play à la fois).</li>
         </ul>
         <p>La France et la Colombie restent exclues dans la Play Console. La langue française est bien présente dans la config.</p>
       </div>
     </section>
 
-    <footer>Kuriocie — auto-promotion — 23 novembre 2026, Europe/Paris. Ne contient aucun mot de passe ni clé.</footer>
+    <footer>Kuriocie — auto-promotion — mise à jour 28 novembre 2026, Europe/Paris. Ne contient aucun mot de passe ni clé.</footer>
   </div>
 <script>
 let config = null;
@@ -432,6 +428,22 @@ function chargerObjet(obj, from) {
   remplirSelects();
 }
 
+async function chargerStatsDistant() {
+  try {
+    const r = await fetch("stats.json", { cache: "no-store" });
+    if (r.status === 404) {
+      $("statsMeta").textContent = "Pas encore de stats.json en ligne. Voir STATISTIQUES.md, ou importez un fichier.";
+      return;
+    }
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const data = await r.json();
+    rendreStats(data);
+  } catch (e) {
+    $("statsMeta").textContent = "Impossible de lire stats.json automatiquement (" + e.message +
+      "). Vous pouvez en importer un à la main.";
+  }
+}
+
 async function essayerFetch() {
   try {
     const r = await fetch("config.json", { cache: "no-store" });
@@ -441,6 +453,7 @@ async function essayerFetch() {
     $("banner").textContent = "Impossible de lire config.json automatiquement (" + e.message +
       "). Utilisez « Ouvrir un JSON » et choisissez le fichier à côté de cette page.";
   }
+  await chargerStatsDistant();
 }
 
 $("btnLoadRemote").addEventListener("click", essayerFetch);
@@ -482,8 +495,11 @@ function rendreStats(data) {
       "</td><td class='num'>" + v + "</td><td class='num'>" + c +
       "</td><td class='num'>" + taux + "</td></tr>";
   }).join("");
-  $("statsMeta").textContent = (data.periode ? "Période : " + data.periode + " — " : "") +
+  let meta = (data.periode ? "Période : " + data.periode + " — " : "") +
     lignes.length + " ligne(s).";
+  if (data.genere_le) meta += " — généré le " + data.genere_le;
+  if (data.avertissement) meta += " — " + data.avertissement;
+  $("statsMeta").textContent = meta;
 }
 $("fileStats").addEventListener("change", async (ev) => {
   const f = ev.target.files[0];

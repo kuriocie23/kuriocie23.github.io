@@ -1,0 +1,60 @@
+name: Statistiques auto-promotion
+
+# Dépose chaque jour autopromo/stats.json, lu par la page de pilotage.
+# Gratuit : API Google Analytics Data (GA4), quota sans facturation.
+# Ne jamais écrire la clé du compte de service dans le dépôt.
+
+on:
+  schedule:
+    # 07:00 Europe/Paris en hiver (UTC+1), 08:00 en été.
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-stats:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installer google-auth
+        run: pip install --quiet "google-auth>=2"
+
+      - name: Préparer les identifiants (sans les afficher)
+        env:
+          GA4_PROPERTY_ID: ${{ vars.GA4_PROPERTY_ID }}
+          GA4_SERVICE_ACCOUNT_JSON: ${{ secrets.GA4_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$GA4_PROPERTY_ID" ] || [ -z "$GA4_SERVICE_ACCOUNT_JSON" ]; then
+            echo "Il manque la variable d'actions GA4_PROPERTY_ID ou le secret GA4_SERVICE_ACCOUNT_JSON."
+            echo "Suivre les clics dans autopromo/STATISTIQUES.md. Ne pas activer la facturation Google Cloud."
+            exit 1
+          fi
+          umask 077
+          printf '%s' "$GA4_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/ga4-sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/ga4-sa.json" >> "$GITHUB_ENV"
+          echo "GA4_PROPERTY_ID=$GA4_PROPERTY_ID" >> "$GITHUB_ENV"
+
+      - name: Générer stats.json
+        run: python3 autopromo/scripts/fetch_autopromo_stats.py --output autopromo/stats.json
+
+      - name: Publier stats.json sur la page
+        run: |
+          rm -f "$RUNNER_TEMP/ga4-sa.json"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add autopromo/stats.json
+          if git diff --staged --quiet; then
+            echo "Pas de changement dans stats.json"
+            exit 0
+          fi
+          git commit -m "autopromo: mise à jour quotidienne des statistiques (stats.json)"
+          git push

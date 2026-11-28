@@ -1,0 +1,4 @@
+*.sa.json
+ga4-sa.json
+credentials.json
+*-credentials.json
